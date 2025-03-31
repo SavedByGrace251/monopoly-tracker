@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monopoly Tracker</title>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+</head>
+<body>
+    <h1>Monopoly Tracker</h1>
+    
+    <h2>Add Player</h2>
+    <form id="add-player-form" hx-post="/players" hx-trigger="submit" hx-target="#players-list" hx-swap="beforeend">
+        <input type="text" name="name" placeholder="Player Name" required>
+        <input type="number" name="money" placeholder="Starting Money" required>
+        <button type="submit">Add Player</button>
+    </form>
+
+    <h2>Players</h2>
+    <button hx-get="/players" hx-trigger="click" hx-target="#players-list" hx-swap="innerHTML">Load Players</button>
+    <ul id="players-list"></ul>
+</body>
+</html>
