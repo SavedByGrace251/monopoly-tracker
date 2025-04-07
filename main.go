@@ -7,38 +7,20 @@ import (
 	"monopoly-tracker/api"
 	"monopoly-tracker/ui"
 	"net/http"
+	"text/template"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/labstack/echo/v4"
 )
 
 var client *mongo.Client
 
-func createDbIfNotExists(client *mongo.Client) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Check databases
-	dbs, err := client.ListDatabaseNames(ctx, bson.M{})
-	if err != nil {
-		return err
-	}
-
-	// If monopoly DB is missing, create a collection to finalize creation
-	for _, dbName := range dbs {
-		if dbName == "monopoly" {
-			return nil
-		}
-	}
-
-	db := client.Database("monopoly")
-	if err := db.CreateCollection(ctx, "players"); err != nil {
-		return err
-	}
-	return nil
+type Templates struct {
+	templates *template.Template
 }
 
 func main() {
@@ -63,12 +45,36 @@ func main() {
 
 	api.Client = client
 
-	r := chi.NewRouter()
-	r.Get("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("/static"))).ServeHTTP)
+	e := echo.New()
+	// serve files from static folder
 
 	ui.RegisterRoutes(r)
 	api.RegisterRoutes(r)
 
 	fmt.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
+}
+
+func createDbIfNotExists(client *mongo.Client) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Check databases
+	dbs, err := client.ListDatabaseNames(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+
+	// If monopoly DB is missing, create a collection to finalize creation
+	for _, dbName := range dbs {
+		if dbName == "monopoly" {
+			return nil
+		}
+	}
+
+	db := client.Database("monopoly")
+	if err := db.CreateCollection(ctx, "players"); err != nil {
+		return err
+	}
+	return nil
 }
