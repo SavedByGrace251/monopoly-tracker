@@ -2,19 +2,16 @@ package api
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var Client *mongo.Client
 
 type Player struct {
 	ID    primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -22,43 +19,38 @@ type Player struct {
 	Money int                `bson:"money" json:"money"`
 }
 
-func GetPlayers(w http.ResponseWriter, r *http.Request) {
-	collection := Client.Database("monopoly").Collection("players")
+func GetPlayers(c echo.Context, client *mongo.Client) error {
+	collection := client.Database("monopoly").Collection("players")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		log.Println("Database query error:", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, "Database error")
 	}
 	defer cursor.Close(ctx)
 
 	var players []Player
 	if err = cursor.All(ctx, &players); err != nil {
 		log.Println("Cursor decoding error:", err)
-		http.Error(w, "Decoding error", http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, "Decoding error")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(players)
+	return c.Render(200, )
 }
 
-func AddPlayer(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+func AddPlayer(c echo.Context, client *mongo.Client) error {
+	if err := c.Request().ParseForm(); err != nil {
 		log.Println("Form parsing error:", err)
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, "Invalid form data")
 	}
 
-	name := r.FormValue("name")
-	moneyStr := r.FormValue("money")
+	name := c.FormValue("name")
+	moneyStr := c.FormValue("money")
 	money, err := strconv.Atoi(moneyStr)
 	if err != nil {
 		log.Println("Invalid money value:", err)
-		http.Error(w, "Money must be a valid number", http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, "Money must be a valid number")
 	}
 
 	player := Player{
@@ -67,17 +59,15 @@ func AddPlayer(w http.ResponseWriter, r *http.Request) {
 		Money: money,
 	}
 
-	collection := Client.Database("monopoly").Collection("players")
+	collection := client.Database("monopoly").Collection("players")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err = collection.InsertOne(ctx, player)
 	if err != nil {
 		log.Println("Database insert error:", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, "Database error")
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "<li>%s - $%d</li>", player.Name, player.Money)
+	return c.JSON(http.StatusOK, player)
 }

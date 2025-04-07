@@ -9,7 +9,7 @@
 </head>
 <body>
     <h1>Monopoly Tracker</h1>
-    
+
     <h2>Add Player</h2>
     <form id="add-player-form" hx-post="/players" hx-trigger="submit" hx-target="#players-list" hx-swap="beforeend">
         <input type="text" name="name" placeholder="Player Name" required>
@@ -20,8 +20,15 @@
     <h2>Players</h2>
     <button hx-get="/players" hx-trigger="click" hx-target="#players-list" hx-swap="innerHTML">Load Players</button>
     <ul id="players-list">
-        
+
     </ul>
 </body>
 </html>
+{{ end }}
+
+{{ block "players" . }}
+<div>
+    <h2>{{.Name}}</h2>
+    <p>{{.Money}}</p>
+</div>
 {{ end }}

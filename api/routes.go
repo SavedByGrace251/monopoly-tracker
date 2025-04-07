@@ -1,10 +1,11 @@
 package api
 
 import (
-    "github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func RegisterRoutes(r chi.Router) {
-    r.Get("/players", GetPlayers)
-    r.Post("/players", AddPlayer)
+func RegisterRoutes(r *echo.Echo, injectClient func(f func(c echo.Context, client *mongo.Client) error) echo.HandlerFunc) {
+	r.GET("/players", injectClient(GetPlayers))
+	r.POST("/players", injectClient(AddPlayer))
 }
