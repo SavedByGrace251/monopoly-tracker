@@ -4,31 +4,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-icon.png">
     <title>Monopoly Tracker</title>
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
 </head>
 <body>
     <h1>Monopoly Tracker</h1>
-
-    <h2>Add Player</h2>
-    <form id="add-player-form" hx-post="/players" hx-trigger="submit" hx-target="#players-list" hx-swap="beforeend">
-        <input type="text" name="name" placeholder="Player Name" required>
-        <input type="number" name="money" placeholder="Starting Money" required>
-        <button type="submit">Add Player</button>
-    </form>
-
-    <h2>Players</h2>
-    <button hx-get="/players" hx-trigger="click" hx-target="#players-list" hx-swap="innerHTML">Load Players</button>
-    <ul id="players-list">
-
-    </ul>
+    <code>
+        Client Id: {{ .ClientId }}
+        <br>
+        {{ if .CurrentGame }} 
+            Game Name: {{ .CurrentGame.Name }}
+            <br>
+        {{ end }}
+        {{ if .RecentGames }}
+            Recent Games:
+            <ul>
+                {{ range .RecentGames }}
+                    <li>{{ .Name }}</li>
+                {{ end }}
+            </ul>
+        {{ end }}
+    </code>
+    {{ if .CurrentGame }}
+        <div id="game-status"><h2>{{ .CurrentGame.Name }}</h2></div>
+        <h3>Add Player</h3>
+        <form id="add-player-form" hx-post="/players" hx-trigger="submit" hx-target="#players-list" hx-swap="beforeend">
+            <input type="text" name="name" placeholder="Player Name" required>
+            <input type="number" name="money" placeholder="Starting Money" required>
+            <button type="submit">Add Player</button>
+        </form>
+        <h3>Players</h3>
+        <button hx-get="/players" hx-trigger="click" hx-target="#players-list" hx-swap="innerHTML">Load Players</button>
+        <ul id="players-list">
+            {{ range .CurrentGame.Players }}
+                {{ template "players" . }}
+            {{ end }}
+        </ul>
+        <code>
+            {{ .CurrentGame}}
+        </code>
+    {{ else }}
+        <div id="game-status"><h2>No Game in Progress</h2></div>
+        <form id="start-game-form" hx-post="/create-game" hx-trigger="submit" hx-target="#game-status" hx-swap="innerHTML">
+            <input type="text" name="game_name" placeholder="Game Name" required>
+            <button type="submit">Create New Game</button>
+        </form>
+    {{ end }}
 </body>
-</html>
 {{ end }}
 
 {{ block "players" . }}
-<div>
-    <h2>{{.Name}}</h2>
-    <p>{{.Money}}</p>
-</div>
+<li id="player-{{.Id}}">
+    <p><b>{{.Name}}</b> - {{.Money}}</p>
+</li>
 {{ end }}

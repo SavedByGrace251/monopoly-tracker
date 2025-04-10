@@ -2,23 +2,24 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"monopoly-tracker/api"
-	"monopoly-tracker/ui"
+	appMiddleware "monopoly-tracker/middleware"
 	"monopoly-tracker/utils"
 	"time"
 
-	
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
-var client *mongo.Client
+// Setup zap logger for loggin to console
+var logger = utils.GetLogger()
 
 func main() {
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -26,14 +27,13 @@ func main() {
 		Username: "root",
 		Password: "example",
 	})
+	logger.Debug("MongoDB client options", zap.String("uri", clientOptions.GetURI()))
 
-	var err error
-	client, err = mongo.Connect(ctx, clientOptions)
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Ensure monopoly DB/collection exist
 	if err := utils.CreateDbIfNotExists(client); err != nil {
 		log.Fatal(err)
 	}
@@ -42,12 +42,21 @@ func main() {
 	injectClient := utils.CreateClientInjector(client)
 
 	e := echo.New()
-	// serve files from static folder
-	e.Static("/static", "static")
-	ui.RegisterRoutes(e, injectClient)
+
+	// Set up middleware
+	e.Pre(appMiddleware.SetClientID())
+	e.Use(appMiddleware.ZapLogger(logger))
+	e.Use(middleware.Recover())
+
+	e.Renderer = utils.NewTemplate()
+	e.Static("/static", "static") // serve files from static folder
 	api.RegisterRoutes(e, injectClient)
 
-	fmt.Println("Server running on :8080")
+	logger.Info("Server Starting",
+		zap.String("address", ":8080"),
+		zap.String("env", "development"),
+		zap.String("version", "1.0.0"),
+	)
+
 	log.Fatal(e.Start(":8080"))
 }
-

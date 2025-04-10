@@ -3,8 +3,12 @@
 [build]
 cmd = "go build -o ./tmp/main"
 bin = "./tmp/main"
+delay = 10000
 include_ext = ["go", "html", "css"]
 exclude_dir = ["tmp", "vendor"]
+
+[stop]
+grace = 5000
 
 [log]
 level = "debug"
